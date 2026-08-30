@@ -1,5 +1,5 @@
 from src.llm import get_llm
-from src.state import ReviewState, ReviewerOutput
+from src.state import ReviewState, ReviewerOutput, summarize_findings
 
 SYSTEM_PROMPT = """You are a correctness-focused code reviewer. You ONLY look for:
 - Off-by-one errors, incorrect boundary conditions
@@ -9,8 +9,7 @@ SYSTEM_PROMPT = """You are a correctness-focused code reviewer. You ONLY look fo
 - Edge cases the code doesn't account for (empty input, large input, etc.)
 
 Do NOT comment on style or security unless it directly causes incorrect behavior.
-Be concise. If you find nothing, return an empty findings list — do not invent issues.
-Always include a one-sentence `summary` field, even when findings is empty."""
+Be concise. If you find nothing, return an empty findings list — do not invent issues."""
 
 
 def logic_reviewer(state: ReviewState) -> dict:
@@ -21,4 +20,5 @@ def logic_reviewer(state: ReviewState) -> dict:
             ("user", f"Review this diff:\n\n{state['diff']}"),
         ]
     )
+    result.summary = summarize_findings(result.findings)
     return {"logic_output": result}

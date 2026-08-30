@@ -1,5 +1,5 @@
 from src.llm import get_llm
-from src.state import ReviewState, ReviewerOutput
+from src.state import ReviewState, ReviewerOutput, summarize_findings
 
 SYSTEM_PROMPT = """You are a security-focused code reviewer. You ONLY look for:
 - Hardcoded secrets, API keys, or credentials
@@ -9,8 +9,7 @@ SYSTEM_PROMPT = """You are a security-focused code reviewer. You ONLY look for:
 - Insecure use of crypto or randomness
 
 Do NOT comment on style, naming, or general bugs unless they are a security risk.
-Be concise. If you find nothing, return an empty findings list — do not invent issues.
-Always include a one-sentence `summary` field, even when findings is empty."""
+Be concise. If you find nothing, return an empty findings list — do not invent issues."""
 
 
 def security_reviewer(state: ReviewState) -> dict:
@@ -21,4 +20,5 @@ def security_reviewer(state: ReviewState) -> dict:
             ("user", f"Review this diff:\n\n{state['diff']}"),
         ]
     )
+    result.summary = summarize_findings(result.findings)
     return {"security_output": result}

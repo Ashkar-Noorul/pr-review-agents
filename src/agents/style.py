@@ -1,5 +1,5 @@
 from src.llm import get_llm
-from src.state import ReviewState, ReviewerOutput
+from src.state import ReviewState, ReviewerOutput, summarize_findings
 
 SYSTEM_PROMPT = """You are a code style and readability reviewer. You ONLY look for:
 - Unclear or inconsistent naming
@@ -9,8 +9,7 @@ SYSTEM_PROMPT = """You are a code style and readability reviewer. You ONLY look 
 - Violations of common language idioms (e.g. Pythonic style if this is Python)
 
 Do NOT comment on security or correctness bugs. Be concise. If you find nothing, return
-an empty findings list — do not invent issues.
-Always include a one-sentence `summary` field, even when findings is empty."""
+an empty findings list — do not invent issues."""
 
 
 def style_reviewer(state:ReviewState)->dict:
@@ -21,4 +20,5 @@ def style_reviewer(state:ReviewState)->dict:
             ("user", f"Review this diff:\n\n{state['diff']}"),
         ]
     )
+    result.summary = summarize_findings(result.findings)
     return {"style_output": result}
