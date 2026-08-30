@@ -9,7 +9,8 @@ SYSTEM_PROMPT = """You are a code style and readability reviewer. You ONLY look 
 - Violations of common language idioms (e.g. Pythonic style if this is Python)
 
 Do NOT comment on security or correctness bugs. Be concise. If you find nothing, return
-an empty findings list — do not invent issues."""
+an empty findings list — do not invent issues.
+Always include a one-sentence `summary` field, even when findings is empty."""
 
 
 def style_reviewer(state:ReviewState)->dict:

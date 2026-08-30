@@ -14,8 +14,11 @@ class Finding(BaseModel):
 class ReviewerOutput(BaseModel):
     """Structured output every specialist agent must return."""
 
+    summary: str = Field(
+        default="(no summary provided)",
+        description="One-sentence summary of this reviewer's overall take",
+    )
     findings: List[Finding]
-    summary: str = Field(description="One-sentence summary of this reviewer's overall take")
 
 class TriageDecision(BaseModel):
     """Final aggregated decision produced by the triage node."""
@@ -23,7 +26,7 @@ class TriageDecision(BaseModel):
     decision: str = Field(description="One of: approve, request_changes, escalate")
     priority_score: int = Field(description="1 (low) to 10 (critical)", ge=1, le=10)
     summary: str = Field(description="Short human-readable summary of the overall review")
-    top_findings: List[Finding] = Field(description="Most important findings across all reviewers")
+    top_findings: List[Finding] = Field(default_factory=list, description="Most important findings across all reviewers")
 
 class ReviewState(TypedDict, total=False):
     diff: str

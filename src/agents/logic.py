@@ -9,7 +9,8 @@ SYSTEM_PROMPT = """You are a correctness-focused code reviewer. You ONLY look fo
 - Edge cases the code doesn't account for (empty input, large input, etc.)
 
 Do NOT comment on style or security unless it directly causes incorrect behavior.
-Be concise. If you find nothing, return an empty findings list — do not invent issues."""
+Be concise. If you find nothing, return an empty findings list — do not invent issues.
+Always include a one-sentence `summary` field, even when findings is empty."""
 
 
 def logic_reviewer(state: ReviewState) -> dict:
