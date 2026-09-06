@@ -9,7 +9,12 @@ SYSTEM_PROMPT = """You are a security-focused code reviewer. You ONLY look for:
 - Insecure use of crypto or randomness
 
 Do NOT comment on style, naming, or general bugs unless they are a security risk.
-Be concise. If you find nothing, return an empty findings list — do not invent issues."""
+Be concise. If you find nothing, return an empty findings list — do not invent issues.
+
+For every finding, always set `file` (the exact path from the diff's header,
+e.g. 'app/user_service.py') and `line_hint` (the specific line number in the new
+file, worked out from the @@ hunk header — not a code snippet). Other agents'
+findings get cross-checked against yours by file+line, so these must be precise."""
 
 
 def security_reviewer(state: ReviewState) -> dict:
