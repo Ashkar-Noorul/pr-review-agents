@@ -4,7 +4,7 @@ A multi-agent PR review system built with [LangGraph](https://github.com/langcha
 
 ## Status
 
-End-to-end pipeline is working: `coordinator → [security, style, logic] → triage → END`. Can run against either a hardcoded sample diff or a real GitHub PR. Overlapping findings across reviewers (e.g. style and logic both commenting on the same line) are detected and reconciled by the triage node — see `GITHUB_INTEGRATION.md` for what's still ahead (noisy-file filtering, posting results back to the PR).
+End-to-end pipeline is working: `coordinator → [security, style, logic] → triage → END`. Can run against either a hardcoded sample diff or a real GitHub PR — real PR diffs are filtered (noisy files like lockfiles/binaries stripped out) and size-capped before review. Overlapping findings across reviewers (e.g. style and logic both commenting on the same line) are detected and reconciled by the triage node. See `GITHUB_INTEGRATION.md` for what's still ahead (posting results back to the PR).
 
 ## Setup
 

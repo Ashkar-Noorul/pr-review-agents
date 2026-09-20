@@ -104,6 +104,12 @@ class TriageDecision(BaseModel):
 
 class ReviewState(TypedDict, total=False):
     diff: str
+    # Only set when reviewing a real GitHub PR (absent for the sample diff).
+    # Not used yet — this is what Phase 3 (posting results back to the PR)
+    # will read to know where to post.
+    pr_owner: str
+    pr_repo: str
+    pr_number: int
     security_output: ReviewerOutput
     style_output: ReviewerOutput
     logic_output: ReviewerOutput

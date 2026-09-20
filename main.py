@@ -20,7 +20,7 @@ if not os.getenv("ANTHROPIC_API_KEY"):
     sys.exit(1)
 
 from src.graph import build_graph
-from src.github_client import fetch_pr_diff, GitHubClientError
+from src.github_client import fetch_pr_diff_filtered, GitHubClientError
 from examples.sample_diff import SAMPLE_DIFF
 
 
@@ -31,10 +31,12 @@ def parse_args():
     return parser.parse_args()
 
 
-def get_diff(args) -> str:
+def get_initial_state(args) -> dict:
+    """Returns the dict to pass to graph.invoke() — just {"diff": ...} for the
+    sample diff, or diff + pr_owner/pr_repo/pr_number for a real PR."""
     if not args.repo and not args.pr:
         print("No --repo/--pr given, using the sample diff.\n")
-        return SAMPLE_DIFF
+        return {"diff": SAMPLE_DIFF}
 
     if bool(args.repo) != bool(args.pr):
         print("ERROR: --repo and --pr must be given together.")
@@ -47,20 +49,31 @@ def get_diff(args) -> str:
 
     print(f"Fetching diff for {args.repo}#{args.pr} from GitHub...\n")
     try:
-        return fetch_pr_diff(owner, repo, args.pr)
+        diff, info = fetch_pr_diff_filtered(owner, repo, args.pr)
     except GitHubClientError as e:
         print(f"ERROR: {e}")
         sys.exit(1)
 
+    if info["removed_files"]:
+        print(
+            f"Filtered out {len(info['removed_files'])} noisy file(s) "
+            f"of {info['total_files']} total: {', '.join(info['removed_files'])}"
+        )
+    if info["truncated"]:
+        print("Diff was truncated to stay within the size budget.")
+    print()
+
+    return {"diff": diff, "pr_owner": owner, "pr_repo": repo, "pr_number": args.pr}
+
 
 def main():
     args = parse_args()
-    diff = get_diff(args)
+    initial_state = get_initial_state(args)
 
     graph = build_graph()
 
     print("Running multi-agent review pipeline...\n")
-    final_state = graph.invoke({"diff": diff})
+    final_state = graph.invoke(initial_state)
 
     decision = final_state["decision"]
 

@@ -7,7 +7,16 @@ from src.agents.security import security_reviewer
 from src.agents.triage import triage_agent
 
 
-def coordinator(state:ReviewState)->dict:
+def coordinator(state: ReviewState) -> dict:
+    if not state.get("diff"):
+        raise ValueError("coordinator: state['diff'] is missing or empty.")
+
+    pr_fields = ("pr_owner", "pr_repo", "pr_number")
+    present = [f for f in pr_fields if state.get(f)]
+    if present and len(present) != len(pr_fields):
+        missing = [f for f in pr_fields if f not in present]
+        raise ValueError(f"coordinator: PR metadata is incomplete, missing {missing}.")
+
     return {}
 
 def build_graph():
