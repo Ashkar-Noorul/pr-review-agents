@@ -1,10 +1,14 @@
 """
 Run: python main.py
+Or:  python main.py --repo owner/name --pr 42
 
-Loads the sample diff, runs it through the multi-agent graph, and prints
-the final triage decision plus every finding from every reviewer.
+With no --repo/--pr, runs the sample diff (examples/sample_diff.py). With
+both given, fetches that PR's real diff from GitHub instead.
+
+Prints the final triage decision plus every finding from every reviewer.
 """
 
+import argparse
 import os
 import sys
 from dotenv import load_dotenv
@@ -16,14 +20,47 @@ if not os.getenv("ANTHROPIC_API_KEY"):
     sys.exit(1)
 
 from src.graph import build_graph
+from src.github_client import fetch_pr_diff, GitHubClientError
 from examples.sample_diff import SAMPLE_DIFF
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(description="Run the PR review agent pipeline.")
+    parser.add_argument("--repo", help="GitHub repo as owner/name, e.g. octocat/Hello-World")
+    parser.add_argument("--pr", type=int, help="Pull request number")
+    return parser.parse_args()
+
+
+def get_diff(args) -> str:
+    if not args.repo and not args.pr:
+        print("No --repo/--pr given, using the sample diff.\n")
+        return SAMPLE_DIFF
+
+    if bool(args.repo) != bool(args.pr):
+        print("ERROR: --repo and --pr must be given together.")
+        sys.exit(1)
+
+    if "/" not in args.repo:
+        print(f"ERROR: --repo must be in owner/name form, got '{args.repo}'.")
+        sys.exit(1)
+    owner, repo = args.repo.split("/", 1)
+
+    print(f"Fetching diff for {args.repo}#{args.pr} from GitHub...\n")
+    try:
+        return fetch_pr_diff(owner, repo, args.pr)
+    except GitHubClientError as e:
+        print(f"ERROR: {e}")
+        sys.exit(1)
+
+
 def main():
+    args = parse_args()
+    diff = get_diff(args)
+
     graph = build_graph()
 
     print("Running multi-agent review pipeline...\n")
-    final_state = graph.invoke({"diff": SAMPLE_DIFF})
+    final_state = graph.invoke({"diff": diff})
 
     decision = final_state["decision"]
 

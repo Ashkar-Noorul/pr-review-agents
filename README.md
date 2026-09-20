@@ -4,7 +4,7 @@ A multi-agent PR review system built with [LangGraph](https://github.com/langcha
 
 ## Status
 
-End-to-end pipeline is working: `coordinator → [security, style, logic] → triage → END`, running against a hardcoded sample diff. Real diff ingestion (e.g. from a GitHub PR) is next.
+End-to-end pipeline is working: `coordinator → [security, style, logic] → triage → END`. Can run against either a hardcoded sample diff or a real GitHub PR. Overlapping findings across reviewers (e.g. style and logic both commenting on the same line) are detected and reconciled by the triage node — see `GITHUB_INTEGRATION.md` for what's still ahead (noisy-file filtering, posting results back to the PR).
 
 ## Setup
 
@@ -14,11 +14,14 @@ venv\Scripts\activate      # Windows
 pip install -r requirements.txt
 ```
 
-Create a `.env` file in the project root:
+Copy `.env.example` to `.env` and fill in your keys:
 
 ```
-ANTHROPIC_API_KEY=your-key-here
+ANTHROPIC_API_KEY=your-anthropic-key-here
+GITHUB_TOKEN=your-github-fine-grained-pat-here   # only needed for --repo/--pr mode
 ```
+
+`GITHUB_TOKEN` needs a fine-grained PAT with **Pull requests: Read-only** on the target repo (or on any public repo — GitHub allows read access to public data regardless of a token's selected repos).
 
 Verify setup:
 
@@ -29,10 +32,11 @@ python test_setup.py
 ## Running
 
 ```bash
-python main.py
+python main.py                              # sample diff
+python main.py --repo owner/name --pr 42    # a real GitHub PR
 ```
 
-This runs the sample diff in `examples/sample_diff.py` through the full graph and prints the final triage decision plus each reviewer's individual findings.
+With no arguments, runs the sample diff in `examples/sample_diff.py`. With `--repo`/`--pr`, fetches that PR's real diff from GitHub instead. Either way, it runs through the full graph and prints the final triage decision plus each reviewer's individual findings.
 
 ## Example output
 
