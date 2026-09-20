@@ -1,6 +1,8 @@
 # Tracking real GitHub PRs
 
-Right now the pipeline reviews one hardcoded diff (`examples/sample_diff.py`). This doc lists everything needed to point it at a real GitHub pull request instead — as a step-by-step plan, not yet implemented.
+Right now the pipeline reviews one hardcoded diff (`examples/sample_diff.py`). This doc lists everything needed to point it at a real GitHub pull request instead.
+
+**Status: Phases 1–3 are implemented and verified end-to-end against a real PR**, including a live posted comment. What's left is everything under "Out of scope for this pass" at the bottom (inline line-anchored comments, per-file chunking, automated triggering).
 
 ## Overview of the change
 
@@ -23,7 +25,11 @@ Three phases, roughly in order of effort:
 ## Phase 1 — Fetch a real diff
 
 ### 1. Get a GitHub token
-- Create a **fine-grained personal access token** (Settings → Developer settings → Personal access tokens) scoped to `Pull requests: Read` on the repo(s) you'll test against.
+- Create a **fine-grained personal access token** (Settings → Developer settings → Personal access tokens) scoped to the repo(s) you'll test against.
+- Repository permissions needed — **learned the hard way**, GitHub's diff-media-type endpoint needs *both* of these together, not just one:
+  - `Pull requests: Read-only`
+  - `Contents: Read-only` — the diff itself is computed from file contents at two commits, which is a separate permission from the PR's metadata. GitHub's 403 response actually tells you this exactly, via an `x-accepted-github-permissions` response header.
+  - `Issues: Read and write` — only needed once you get to Phase 3 (posting a comment); PR comments use the issue-comments API endpoint under the hood, so it's `Issues`, not `Pull requests`, that gates write access there.
 - Add it to `.env`:
   ```
   GITHUB_TOKEN=ghp_xxxxxxxxxxxx
