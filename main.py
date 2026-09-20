@@ -1,9 +1,12 @@
 """
 Run: python main.py
 Or:  python main.py --repo owner/name --pr 42
+Or:  python main.py --repo owner/name --pr 42 --post
 
 With no --repo/--pr, runs the sample diff (examples/sample_diff.py). With
-both given, fetches that PR's real diff from GitHub instead.
+both given, fetches that PR's real diff from GitHub instead. Add --post to
+also post the decision back to the PR as a summary comment (requires
+GITHUB_TOKEN to have "Issues: Read and write" on that repo).
 
 Prints the final triage decision plus every finding from every reviewer.
 """
@@ -21,6 +24,7 @@ if not os.getenv("ANTHROPIC_API_KEY"):
 
 from src.graph import build_graph
 from src.github_client import fetch_pr_diff_filtered, GitHubClientError
+from src.github_writer import format_decision_as_markdown, post_pr_comment, GitHubWriterError
 from examples.sample_diff import SAMPLE_DIFF
 
 
@@ -28,6 +32,11 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Run the PR review agent pipeline.")
     parser.add_argument("--repo", help="GitHub repo as owner/name, e.g. octocat/Hello-World")
     parser.add_argument("--pr", type=int, help="Pull request number")
+    parser.add_argument(
+        "--post",
+        action="store_true",
+        help="Post the decision back to the PR as a summary comment (requires --repo/--pr).",
+    )
     return parser.parse_args()
 
 
@@ -68,6 +77,11 @@ def get_initial_state(args) -> dict:
 
 def main():
     args = parse_args()
+
+    if args.post and not (args.repo and args.pr):
+        print("ERROR: --post requires --repo and --pr.")
+        sys.exit(1)
+
     initial_state = get_initial_state(args)
 
     graph = build_graph()
@@ -94,6 +108,22 @@ def main():
         print(f"  Summary: {output.summary}")
         for f in output.findings:
             print(f"  - [{f.severity}] {f.category}: {f.message}")
+
+    if args.post:
+        body = format_decision_as_markdown(
+            decision,
+            security=final_state.get("security_output"),
+            style=final_state.get("style_output"),
+            logic=final_state.get("logic_output"),
+        )
+        owner, repo = args.repo.split("/", 1)
+        print(f"\nPosting comment to {args.repo}#{args.pr}...")
+        try:
+            result = post_pr_comment(owner, repo, args.pr, body)
+        except GitHubWriterError as e:
+            print(f"ERROR: {e}")
+            sys.exit(1)
+        print(f"Posted: {result['html_url']}")
 
 
 if __name__ == "__main__":
