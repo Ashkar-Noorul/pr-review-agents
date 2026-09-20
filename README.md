@@ -4,7 +4,7 @@ A multi-agent PR review system built with [LangGraph](https://github.com/langcha
 
 ## Status
 
-End-to-end pipeline is working: `coordinator → [security, style, logic] → triage → END`. Can run against either a hardcoded sample diff or a real GitHub PR — real PR diffs are filtered (noisy files like lockfiles/binaries stripped out) and size-capped before review. Overlapping findings across reviewers (e.g. style and logic both commenting on the same line) are detected and reconciled by the triage node. See `GITHUB_INTEGRATION.md` for what's still ahead (posting results back to the PR).
+End-to-end pipeline is working: `coordinator → [security, style, logic] → triage → END`. Can run against a hardcoded sample diff, review a real GitHub PR, and post the decision back as a comment on that PR — real PR diffs are filtered (noisy files like lockfiles/binaries stripped out) and size-capped before review. Overlapping findings across reviewers (e.g. style and logic both commenting on the same line) are detected and reconciled by the triage node. See `GITHUB_INTEGRATION.md` for what's still ahead (inline line-anchored comments, automated triggering).
 
 ## Setup
 
@@ -21,7 +21,13 @@ ANTHROPIC_API_KEY=your-anthropic-key-here
 GITHUB_TOKEN=your-github-fine-grained-pat-here   # only needed for --repo/--pr mode
 ```
 
-`GITHUB_TOKEN` needs a fine-grained PAT with **Pull requests: Read-only** on the target repo (or on any public repo — GitHub allows read access to public data regardless of a token's selected repos).
+`GITHUB_TOKEN` needs a fine-grained PAT with these Repository permissions on the target repo (or on any public repo, for reading — GitHub allows read access to public data regardless of a token's selected repos):
+
+| Permission | Needed for |
+|---|---|
+| `Pull requests: Read-only` | Looking up the PR and its base/head refs |
+| `Contents: Read-only` | Reading the actual diff — GitHub computes diffs from file contents, so this is required *together with* `Pull requests`, not instead of it |
+| `Issues: Read and write` | Posting the review back as a comment (`--post`) — PR comments use the issue-comments API endpoint under the hood, so it's `Issues`, not `Pull requests`, that gates this |
 
 Verify setup:
 
@@ -32,11 +38,14 @@ python test_setup.py
 ## Running
 
 ```bash
-python main.py                              # sample diff
-python main.py --repo owner/name --pr 42    # a real GitHub PR
+python main.py                                     # sample diff
+python main.py --repo owner/name --pr 42           # a real GitHub PR
+python main.py --repo owner/name --pr 42 --post    # ...and post the decision as a PR comment
 ```
 
-With no arguments, runs the sample diff in `examples/sample_diff.py`. With `--repo`/`--pr`, fetches that PR's real diff from GitHub instead. Either way, it runs through the full graph and prints the final triage decision plus each reviewer's individual findings.
+With no arguments, runs the sample diff in `examples/sample_diff.py`. With `--repo`/`--pr`, fetches that PR's real diff from GitHub instead — noisy files (lockfiles, generated code, binaries) are filtered out and the diff is size-capped before review. Either way, it runs through the full graph and prints the final triage decision plus each reviewer's individual findings.
+
+Add `--post` to also post the decision back to the PR as a single markdown comment (decision, priority, top findings, and a collapsible section with each reviewer's individual findings) — see the [live example](https://github.com/Ashkar-Noorul/pr-review-agents-test/pull/1#issuecomment-5750397275) this was tested against.
 
 ## Example output
 
